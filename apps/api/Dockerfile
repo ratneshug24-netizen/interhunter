@@ -33,4 +33,4 @@ COPY --from=base /app/apps/api ./apps/api
 WORKDIR /app/apps/api
 EXPOSE 3000
 
-CMD ["npm", "start"]
+CMD ["sh", "-c", "npx prisma migrate deploy --schema=./prisma/schema.prisma && npm start"]
