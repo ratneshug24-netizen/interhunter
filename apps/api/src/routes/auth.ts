@@ -1,6 +1,6 @@
 import { Router } from "express";
 import bcrypt from "bcrypt";
-import prisma from "../../lib/prisma.js";
+import prisma from "../lib/prisma";
 
 const router = Router();
 
