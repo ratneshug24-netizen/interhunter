@@ -12,7 +12,8 @@ COPY apps/api ./apps/api
 # Install dependencies using npm workspaces
 RUN npm ci
 
-# Point explicitly to the schema file path
+# 👇 FIX 1: Pass the exact architecture target variable during generation
+ENV PRISMA_CLI_BINARY_TARGETS=linux-musl-openssl-3.0.x
 RUN npx prisma generate --schema=./apps/api/prisma/schema.prisma
 
 # Step 1: Build the shared types package first
@@ -27,6 +28,9 @@ RUN npm run build -w apps/api
 FROM node:18-alpine AS runner
 WORKDIR /app
 
+# 👇 FIX 2: Ensure the runner environment defaults to the OpenSSL 3 variant
+ENV PRISMA_CLI_BINARY_TARGETS=linux-musl-openssl-3.0.x
+
 COPY --from=base /app/package.json /app/package-lock.json ./
 COPY --from=base /app/node_modules ./node_modules
 COPY --from=base /app/packages/types ./packages/types
@@ -34,4 +38,5 @@ COPY --from=base /app/apps/api ./apps/api
 
 WORKDIR /app/apps/api
 EXPOSE 3000
+
 CMD ["npm", "start"]
