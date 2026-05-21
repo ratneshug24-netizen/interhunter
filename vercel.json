@@ -1,6 +1,0 @@
-{
-  "rootDirectory": "apps/web",
-  "buildCommand": "cd ../.. && npm ci && npm run build -w apps/web",
-  "outputDirectory": ".next",
-  "framework": "nextjs"
-}
