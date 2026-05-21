@@ -2,9 +2,6 @@
 FROM node:18-alpine AS base
 WORKDIR /app
 
-# 👇 FIX IS RIGHT HERE: Install OpenSSL 1.1 compatibility packages
-RUN apk add --no-cache openssl1.1-compat
-
 # Copy root configurations for npm workspaces
 COPY package.json package-lock.json tsconfig.json ./
 
@@ -29,9 +26,6 @@ RUN npm run build -w apps/api
 # ==========================================
 FROM node:18-alpine AS runner
 WORKDIR /app
-
-# 👇 DON'T FORGET THIS: The production environment needs OpenSSL 1.1 too!
-RUN apk add --no-cache openssl1.1-compat
 
 COPY --from=base /app/package.json /app/package-lock.json ./
 COPY --from=base /app/node_modules ./node_modules
