@@ -1,6 +1,6 @@
 {
-  "buildCommand": "npm run build",
-  "outputDirectory": "apps/web/.next",
-  "framework": "nextjs",
-  "ignoreCommand": "git diff HEAD^ HEAD --quiet apps/web packages"
+  "rootDirectory": "apps/web",
+  "buildCommand": "cd ../.. && npm ci && npm run build -w apps/web",
+  "outputDirectory": ".next",
+  "framework": "nextjs"
 }
