@@ -1,0 +1,144 @@
+version: "3.9"
+
+services:
+  # ──────────────────────────────────────────────
+  # PostgreSQL Database
+  # ──────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: ih-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: internhunter
+      POSTGRES_PASSWORD: internhunter_secret
+      POSTGRES_DB: internhunter
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U internhunter"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ──────────────────────────────────────────────
+  # Redis (BullMQ broker)
+  # ──────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: ih-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ──────────────────────────────────────────────
+  # Express API (apps/api)
+  # ──────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: ih-api
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+    environment:
+      NODE_ENV: development
+      PORT: 4000
+      DATABASE_URL: postgresql://internhunter:internhunter_secret@postgres:5432/internhunter?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      USE_SES: ${USE_SES:-}
+      AWS_REGION: ${AWS_REGION:-}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      CRUNCHBASE_API_KEY: ${CRUNCHBASE_API_KEY:-}
+      PRODUCTHUNT_API_KEY: ${PRODUCTHUNT_API_KEY:-}
+      LINKEDIN_API_KEY: ${LINKEDIN_API_KEY:-}
+      BUILTWITH_API_KEY: ${BUILTWITH_API_KEY:-}
+      HUNTER_API_KEY: ${HUNTER_API_KEY:-}
+      CORS_ORIGIN: http://localhost:3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./apps/api/src:/app/apps/api/src
+      - ./packages:/app/packages
+
+  # ──────────────────────────────────────────────
+  # Background Worker (apps/api worker)
+  # ──────────────────────────────────────────────
+  worker:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: ih-worker
+    restart: unless-stopped
+    command: ["npm", "run", "dev:worker"] # In dev, use ts-node or similar. In prod, node dist/worker.js.
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://internhunter:internhunter_secret@postgres:5432/internhunter?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      USE_SES: ${USE_SES:-}
+      AWS_REGION: ${AWS_REGION:-}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      CRUNCHBASE_API_KEY: ${CRUNCHBASE_API_KEY:-}
+      PRODUCTHUNT_API_KEY: ${PRODUCTHUNT_API_KEY:-}
+      LINKEDIN_API_KEY: ${LINKEDIN_API_KEY:-}
+      BUILTWITH_API_KEY: ${BUILTWITH_API_KEY:-}
+      HUNTER_API_KEY: ${HUNTER_API_KEY:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./apps/api/src:/app/apps/api/src
+      - ./packages:/app/packages
+
+  # ──────────────────────────────────────────────
+  # Next.js Frontend (apps/web)
+  # ──────────────────────────────────────────────
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: ih-web
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:4000
+    depends_on:
+      - api
+    volumes:
+      - ./apps/web/src:/app/apps/web/src
+      - ./apps/web/public:/app/apps/web/public
+
+volumes:
+  pg_data:
+  redis_data:

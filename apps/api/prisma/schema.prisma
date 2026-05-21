@@ -1,0 +1,94 @@
+// ═══════════════════════════════════════════════
+// Prisma Schema — InternHunter
+// ═══════════════════════════════════════════════
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enrichment Status ─────────────────────────
+enum EnrichmentStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  PARTIAL
+  FAILED
+}
+
+// ─── User ──────────────────────────────────────
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("users")
+}
+
+// ─── Company ───────────────────────────────────
+model Company {
+  id               String           @id @default(cuid())
+  name             String
+  domain           String           @unique
+  fundingStage     String           @map("funding_stage")
+  fundingDate      DateTime         @map("funding_date")
+  description      String           @default("")
+  techStack        String[]         @map("tech_stack")
+  sourceUrl        String           @map("source_url")
+  createdAt        DateTime         @default(now()) @map("created_at")
+  enrichmentStatus EnrichmentStatus @default(PENDING) @map("enrichment_status")
+  enrichmentError  String?          @map("enrichment_error") @db.Text
+  fundingAmount    String?          @map("funding_amount")
+  investors        String[]         @default([])
+  crunchbaseUuid   String?          @map("crunchbase_uuid")
+
+  founders         Founder[]
+  prospects        Prospect[]
+
+  @@index([enrichmentStatus])
+  @@map("companies")
+}
+
+// ─── Founder ───────────────────────────────────
+model Founder {
+  id        String  @id @default(cuid())
+  companyId String  @map("company_id")
+  name      String
+  email     String
+  title     String
+
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, email])
+  @@index([companyId])
+  @@map("founders")
+}
+
+// ─── Prospect ──────────────────────────────────
+enum ProspectStatus {
+  PENDING
+  REVIEWED
+  SENT
+  SKIPPED
+}
+
+model Prospect {
+  id             String         @id @default(cuid())
+  companyId      String         @map("company_id")
+  status         ProspectStatus @default(PENDING)
+  generatedEmail String?        @map("generated_email") @db.Text
+  editedEmail    String?        @map("edited_email") @db.Text
+  createdAt      DateTime       @default(now()) @map("created_at")
+
+  company        Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@index([status])
+  @@map("prospects")
+}
