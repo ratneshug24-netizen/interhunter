@@ -2,33 +2,27 @@
 FROM node:18-alpine AS base
 WORKDIR /app
 
-# Copy root configurations for npm workspaces
-COPY package.json package-lock.json tsconfig.json ./
+# ADD THIS LINE
+RUN apk add --no-cache openssl
 
-# Copy all workspaces/packages
+COPY package.json package-lock.json tsconfig.json ./
 COPY packages/types ./packages/types
 COPY apps/api ./apps/api
 
-# Install dependencies using npm workspaces
 RUN npm ci
 
-# 👇 FIX 1: Pass the exact architecture target variable during generation
 ENV PRISMA_CLI_BINARY_TARGETS=linux-musl-openssl-3.0.x
 RUN npx prisma generate --schema=./apps/api/prisma/schema.prisma
 
-# Step 1: Build the shared types package first
 RUN npm run build -w packages/types
-
-# Step 2: Build the backend API server
 RUN npm run build -w apps/api
 
-# ==========================================
-# Production runtime stage
-# ==========================================
 FROM node:18-alpine AS runner
 WORKDIR /app
 
-# 👇 FIX 2: Ensure the runner environment defaults to the OpenSSL 3 variant
+# ADD THIS LINE
+RUN apk add --no-cache openssl
+
 ENV PRISMA_CLI_BINARY_TARGETS=linux-musl-openssl-3.0.x
 
 COPY --from=base /app/package.json /app/package-lock.json ./
