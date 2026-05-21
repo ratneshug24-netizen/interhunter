@@ -12,27 +12,31 @@ COPY apps/api ./apps/api
 # Install dependencies using npm workspaces
 RUN npm ci
 
-# ADD THIS LINE RIGHT HERE BEFORE THE BUILDS
-RUN npx prisma generate --schema=apps/api/prisma/schema.prisma
-
 # Step 1: Build the shared types package first
 RUN npm run build -w packages/types
 
 # Step 2: Build the backend API server
 RUN npm run build -w apps/api
 
-# Production runtime stage
+# ==========================================
+# 👇 UPDATED PRODUCTION RUNTIME STAGE 👇
+# ==========================================
 FROM node:18-alpine AS runner
 WORKDIR /app
 
-# Copy built artifacts and configurations from base stage
+# Copy the entire workspace metadata
 COPY --from=base /app/package.json /app/package-lock.json ./
-COPY --from=base /app/packages/types/package.json ./packages/types/package.json
-COPY --from=base /app/packages/types/dist ./packages/types/dist
-COPY --from=base /app/apps/api/package.json ./apps/api/package.json
-COPY --from=base /app/apps/api/dist ./apps/api/dist
-COPY --from=base /app/apps/api/node_modules ./apps/api/node_modules
 
+# Copy the entire root node_modules where npm hoists express and your dependencies
+COPY --from=base /app/node_modules ./node_modules
+
+# Copy the built application workspace folders
+COPY --from=base /app/packages/types ./packages/types
+COPY --from=base /app/apps/api ./apps/api
+
+# Move straight into your API folder context
 WORKDIR /app/apps/api
 EXPOSE 3000
+
+# Fire up the engine
 CMD ["npm", "start"]
