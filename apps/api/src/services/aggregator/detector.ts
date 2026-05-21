@@ -142,7 +142,7 @@ export async function detectAndPersist(
         },
         select: { domain: true },
       })
-    ).map((row) => row.domain.toLowerCase())
+    ).map((row: any) => row.domain.toLowerCase())
   );
 
   const novel = unique.filter(

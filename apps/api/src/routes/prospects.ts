@@ -76,7 +76,7 @@ router.get("/", async (req: Request, res: Response, next: NextFunction) => {
     ]);
 
     // Parse generated/edited emails for convenience
-    const formattedProspects = prospects.map((p) => {
+    const formattedProspects = prospects.map((p: any) => {
       let parsedEmail = null;
       try {
         if (p.editedEmail) parsedEmail = JSON.parse(p.editedEmail);

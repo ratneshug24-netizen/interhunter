@@ -12,6 +12,9 @@ COPY apps/api ./apps/api
 # Install dependencies using npm workspaces
 RUN npm ci
 
+# ADD THIS LINE RIGHT HERE BEFORE THE BUILDS
+RUN npx prisma generate --schema=apps/api/prisma/schema.prisma
+
 # Step 1: Build the shared types package first
 RUN npm run build -w packages/types
 
