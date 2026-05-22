@@ -1,7 +1,3 @@
-// ═══════════════════════════════════════════════
-// Environment Configuration
-// ═══════════════════════════════════════════════
-
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -15,12 +11,7 @@ export const config = {
   },
 
   redis: {
-    host: process.env.REDIS_HOST || "localhost",
-    port: parseInt(process.env.REDIS_PORT || "6379", 10),
-  },
-
-  openai: {
-    apiKey: process.env.OPENAI_API_KEY || "",
+    url: process.env.REDIS_URL || "redis://localhost:6379",
   },
 
   anthropic: {
