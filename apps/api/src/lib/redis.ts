@@ -1,15 +1,13 @@
-// ═══════════════════════════════════════════════
-// Redis Connection (IORedis)
-// ═══════════════════════════════════════════════
-
 import IORedis from "ioredis";
-import { config } from "../config.js";
 
-export const redis = new IORedis({
-  host: config.redis.host,
-  port: config.redis.port,
-  maxRetriesPerRequest: null, // Required by BullMQ
+export const redis = new IORedis(process.env.REDIS_URL!, {
+  maxRetriesPerRequest: null,
   enableReadyCheck: false,
+  tls: {},
+  retryStrategy: (times) => {
+    return Math.min(times * 500, 5000);
+  },
+  reconnectOnError: () => true,
 });
 
 redis.on("connect", () => {
