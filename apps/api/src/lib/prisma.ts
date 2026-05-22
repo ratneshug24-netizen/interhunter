@@ -9,40 +9,27 @@ export const prisma =
       process.env.NODE_ENV === "development"
         ? ["query", "error", "warn"]
         : ["error"],
-    datasources: {
-      db: {
-        url: process.env.DATABASE_URL,
-      },
-    },
   });
 
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;
 }
 
-// Reconnect on connection reset
+// Keep Neon connection alive — ping every 4 minutes
+// Neon suspends after 5 minutes of inactivity
+if (process.env.NODE_ENV === "production") {
+  setInterval(async () => {
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+    } catch {
+      // silently reconnect on next real query
+      await prisma.$disconnect();
+    }
+  }, 4 * 60 * 1000);
+}
+
 process.on("beforeExit", async () => {
   await prisma.$disconnect();
 });
-
-export async function withRetry<T>(
-  fn: () => Promise<T>,
-  retries = 3
-): Promise<T> {
-  for (let i = 0; i < retries; i++) {
-    try {
-      return await fn();
-    } catch (err: any) {
-      if (err?.code === "ECONNRESET" && i < retries - 1) {
-        console.warn(`ECONNRESET on attempt ${i + 1}, retrying...`);
-        await prisma.$disconnect();
-        await new Promise((r) => setTimeout(r, 1000 * (i + 1)));
-        continue;
-      }
-      throw err;
-    }
-  }
-  throw new Error("Max retries reached");
-}
 
 export default prisma;
